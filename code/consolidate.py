@@ -117,7 +117,7 @@ for fileName in fileNames:
         print "Calculating ENTITIES and CONFIDENCES...\n"
         #extract entities and save them
         for indx, article in enumerate(articles):
-            print indx,'/',len(articles)            
+            print indx,'/',len(articles)
             #IMP: adding original article to all ENTITIES and CONFIDENCES LISTS at 0th position
             originalArticle = article[0]
             entities, confidences = extractEntitiesWithConfidences(originalArticle)
@@ -125,7 +125,7 @@ for fileName in fileNames:
 
             #now for the downloaded extra articles
             for j, newArticle in enumerate(downloaded_articles[indx]):
-                newArticle = newArticle.split(' ')[:WORD_LIMIT] 
+                newArticle = newArticle.split(' ')[:WORD_LIMIT]
                 entities, confidences = extractEntitiesWithConfidences(newArticle)
                 ENTITIES[indx+globalIndx][listNum][j+1], CONFIDENCES[indx+globalIndx][listNum][j+1] = entities, confidences
             # pdb.set_trace()
@@ -140,23 +140,23 @@ for fileName in fileNames:
 ARTICLES, TITLES, IDENTIFIERS, DOWNLOADED_ARTICLES = ARTICLES2, TITLES2, IDENTIFIERS2, DOWNLOADED_ARTICLES2
 
 # now to calculate cosine_sim using tf-idf calculated using all the downloaded articles
-for indx, article in enumerate(ARTICLES):
-    originalArticle = article[0]
-    allArticles = [' '.join(originalArticle)] 
-    for i in range(numLists):
-        allArticles += DOWNLOADED_ARTICLES[indx][i]
-
-    tfidf_matrix = tfidf_vectorizer.fit_transform(allArticles)
-    cnt = 1
-    for listNum in range(len(DOWNLOADED_ARTICLES[indx])):
-        sublist = DOWNLOADED_ARTICLES[indx][listNum]
-        if len(sublist)>0:
-            COSINE_SIM[indx][listNum] = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[cnt:cnt+len(sublist)])[0]
-        else:
-            print "not enough elements in sublist for cosine_sim"
-            COSINE_SIM[indx][listNum] = []
-        # pdb.set_trace()
-        cnt += len(sublist)
+# for indx, article in enumerate(ARTICLES):
+#     originalArticle = article[0]
+#     allArticles = [' '.join(originalArticle)]
+#     for i in range(numLists):
+#         allArticles += DOWNLOADED_ARTICLES[indx][i]
+#
+#     tfidf_matrix = tfidf_vectorizer.fit_transform(allArticles)
+#     cnt = 1
+#     for listNum in range(len(DOWNLOADED_ARTICLES[indx])):
+#         sublist = DOWNLOADED_ARTICLES[indx][listNum]
+#         if len(sublist)>0:
+#             COSINE_SIM[indx][listNum] = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[cnt:cnt+len(sublist)])[0]
+#         else:
+#             print "not enough elements in sublist for cosine_sim"
+#             COSINE_SIM[indx][listNum] = []
+#         # pdb.set_trace()
+#         cnt += len(sublist)
 
 
 

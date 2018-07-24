@@ -1,0 +1,54 @@
+#1 get source code
+>git clone https://github.com/guiyaocheng/DeepRL-InformationExtraction
+
+#2 install python2
+
+#3 install torch
+http://torch.ch/docs/getting-started.html
+Problem1:
+https://devtalk.nvidia.com/default/topic/1032643/torch7-installation-failed/
+
+>git clone https://github.com/torch/distro.git ~/torch --recursive
+>cd ~/torch
+>./clean.sh
+>export TORCH_NVCC_FLAGS="-D__CUDA_NO_HALF_OPERATORS__"
+>TORCH_LUA_VERSION=LUA52 ./install.sh
+
+ERROR1:
+Could not get lock /var/lib/dpkg/lock - open (11: Resource temporarily unavailable)
+SOLUTION1:
+>sudo rm /var/lib/dpkg/lock
+
+ERROR2:
+CMake Error in CMakeLists.txt:
+  No CMAKE_CXX_COMPILER could be found.
+>sudo apt-get install gcc
+>sudo apt-get install g++
+
+ERROR3:(not-fixed)
+Package python-software-properties is not available
+>sudo apt-get install software-properties-common
+
+ERROR4:
+fetal error: readline/readline.h: No such file
+>sudo apt-get install libreadline-dev
+>sudo ./install.sh
+
+#5 install lua
+>sudo apt-get install luarocks
+>sudo apt-get install torch-trepl
+have to restart terminal
+
+#6 install dependencies
+inflect
+simplejson
+numpy
+scipy
+scikit-learn
+feedparser
+tldextract
+lxml
+newspaper # not installed
+python-crfsuite
+nltk
+

@@ -59,7 +59,8 @@ function nql:__init(args)
     self.transition_params = args.transition_params or {}
 
     self.network    = args.network or self:createNetwork()
-
+    -- debug 20180711
+    -- self.network    = "network_mass"
     -- check whether there is a network file
     local network_function
     if not (type(self.network) == 'string') then
