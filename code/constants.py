@@ -1,6 +1,6 @@
 
 # mode = "EMA"
-mode = "Shooter"
+mode = "DS"
 
 if mode == "Shooter":
     #for Shooter DB
@@ -25,3 +25,6 @@ elif mode == "EMA":
     int2citationFeilds = ['Authors', 'Date', 'Title', 'Source']
     generic = ["city", "centre", "county", "street", "road", "and", "in", "town", "village"]
 
+elif mode == "DS":
+    int2tags = ['relation','entity_1','entity_2']
+    tags2int = {'TAG':0,  'relation':1, 'entity_1':2, 'entity_2':3}

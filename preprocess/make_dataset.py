@@ -57,6 +57,7 @@ def load_confidence(conf_file):
             fields = line.split('\t')
             prediction = fields[0]
             conf = fields[1]
+            conf = float(conf)
             raw_conf.append(((prediction,conf), len(raw_conf)))
     return raw_conf
 
@@ -109,12 +110,12 @@ def make_data(grouped_data, entity_map):
         assert tname
         for rlabels,sent,rpred,conf,id in slist:
             articlelist.append(sent)
-            conflist.append(conf)
-            entitylist.append((sname,tname,rpred))
+            conflist.append([conf,conf,conf])
+            entitylist.append([rpred,sname,tname])
         downloaded_articles.append([articlelist])
         entities.append([entitylist])
         confidences.append([conflist])
-        identifiers.append((sname,tname,rlabels[0])) ## todo : not sure if it is fine to select the first label?
+        identifiers.append([rlabels[0],sname,tname]) ## todo : not sure if it is fine to select the first label?
         first_articles.append(articlelist[0])
     return first_articles,downloaded_articles,identifiers,entities,confidences
 
@@ -163,7 +164,7 @@ def extract_entity_context(article,entity,vectorizer,context=3):
                 else:
                     phrase.append('XYZUNK')  # random unseen phrase
             for j in range(1, context + 1):
-                if i + len(std_entity) - 1 + j < len(tokens): ## todo : testing this
+                if i + len(std_entity) - 1 + j < len(tokens):
                     phrase.append(tokens[i + len(std_entity) - 1 + j])
                 else:
                     phrase.append('XYZUNK')  # random unseen phrase
@@ -193,7 +194,7 @@ def extract_context(downloaded_articles, entities, vectorizer, context=3):
         for listNum, articleList in enumerate(queryLists):
             for articleNum, entities in enumerate(articleList):
                 article = downloaded_articles[indx][listNum][articleNum]
-                ent1,ent2,rpred = entities
+                rpred,ent1,ent2 = entities
                 vec1 = extract_entity_context(article,ent1,vectorizer,context)
                 vec2 = extract_entity_context(article,ent2,vectorizer,context)
                 contexts[indx][listNum][articleNum] = []
@@ -203,8 +204,8 @@ def extract_context(downloaded_articles, entities, vectorizer, context=3):
     return contexts
 
 
-raw_data = load_data_file('/home/gyc/Data/held_out_dir/train.sent.txt')
-raw_conf = load_confidence('/home/gyc/Data/held_out_dir/train.scores.txt')
+raw_data = load_data_file('/home/gyc/Data/held_out_dir/test.sent.txt')
+raw_conf = load_confidence('/home/gyc/Data/held_out_dir/test.scores.txt')
 entity_map = load_entity_name('/home/gyc/Data/held_out_dir/filtered-freebase-simple-topic-dump-3cols.tsv')
 
 combined_raw = combine(raw_data,raw_conf)
@@ -217,10 +218,11 @@ cosine_sim = calculate_cosine_sim(first_articles,downloaded_articles,1)
 entity_pairs,rels,sents,confs = separate(raw_data, raw_conf)
 vec1,vec2 = getContextDictionary(sents)
 
-contexts = extract_context(downloaded_articles,entities,vec2,context=3)
+contexts1 = extract_context(downloaded_articles,entities,vec1,context=3)
+contexts2 = extract_context(downloaded_articles,entities,vec2,context=3)
 
-with open('/home/gyc/Data/held_out_dir/train.p', "wb") as f:
-    pickle.dump([first_articles,downloaded_articles,identifiers,entities,confidences,cosine_sim,contexts,vec1,vec2],f)
+with open('/home/gyc/Data/held_out_dir/test.p', "wb") as f:
+    pickle.dump([first_articles,downloaded_articles,identifiers,entities,confidences,cosine_sim,contexts1,contexts2,vec1,vec2],f)
 
 # sentence = u'But he doubted that modified calendars produce any overall academic benefits , a view shared by Gene V. Glass , a professor of education policy at Arizona State University , who said that at least a half-dozen studies suggest that \'\' there is not a scrap of evidence that shows a year-round calendar improves achievement . \'\''
 # vec = extract_entity_context(sentence,u'Gene V. Glass',vec2)

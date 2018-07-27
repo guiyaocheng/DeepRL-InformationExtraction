@@ -24,6 +24,8 @@ function env:__init(args)
         -- actions for selecting each entity or stopping
         -- Action 5 - ignore all entities
         -- Action 999 - take all entities
+    elseif args.mode == 'DS' then
+        self.actions = {0,1,2,3,4,999} -- Distant Supervision
     else
         self.actions = {0,1,2,3,4,999}  --EMA
     end

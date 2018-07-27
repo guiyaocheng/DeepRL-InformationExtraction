@@ -117,7 +117,10 @@ class Environment:
 
         # to keep track of extracted values from previousArticle
         # start off with list 0 always
-        if 0 in ENTITIES[self.indx][0]:
+        ###################################
+        # if 0 in ENTITIES[self.indx][0]:
+        if len(ENTITIES[self.indx][0])>0:
+        ####
             self.prevEntities, self.prevConfidences = ENTITIES[self.indx][0][0], CONFIDENCES[self.indx][0][0]
         else:
             self.prevEntities, self.prevConfidences = self.extractEntitiesWithConfidences(self.originalArticle)
@@ -132,14 +135,16 @@ class Environment:
         self.allArticles = [originalArticle] + [item for sublist in self.newArticles for item in sublist]
         self.allArticles = [' '.join(q) for q in self.allArticles]
 
-        if self.indx not in COSINE_SIM:
-            # self.tfidf_matrix = TFIDF_MATRICES[0][self.indx]
-            self.tfidf_matrix = tfidf_vectorizer.fit_transform(self.allArticles)
-            cnt = 0
-            for listNum, sublist in enumerate(self.newArticles):
-                COSINE_SIM[self.indx][listNum] = cosine_similarity(self.tfidf_matrix[0:1], self.tfidf_matrix[cnt:cnt+len(sublist)])[0]
-                pdb.set_trace()
-                cnt += len(sublist)
+        ############################################
+        # if self.indx not in COSINE_SIM:
+        #     # self.tfidf_matrix = TFIDF_MATRICES[0][self.indx]
+        #     self.tfidf_matrix = tfidf_vectorizer.fit_transform(self.allArticles)
+        #     cnt = 0
+        #     for listNum, sublist in enumerate(self.newArticles):
+        #         COSINE_SIM[self.indx][listNum] = cosine_similarity(self.tfidf_matrix[0:1], self.tfidf_matrix[cnt:cnt+len(sublist)])[0]
+        #         pdb.set_trace()
+        #         cnt += len(sublist)
+        ############################################
 
         #update the initial state
         self.stepNum = [0 for q in range(NUM_QUERY_TYPES)]
@@ -148,16 +153,16 @@ class Environment:
 
         return
 
-    def extractEntitiesWithConfidences(self, article):
-        #article is a list of words
-        joined_article = ' '.join(article)
-        pred, conf_scores, conf_cnts = predict.predictWithConfidences(trained_model, joined_article, False, helper.cities)
-
-        for i in range(len(conf_scores)):
-            if conf_cnts[i] > 0:
-                conf_scores[i] /= conf_cnts[i]
-
-        return pred.split(' ### '), conf_scores
+    # def extractEntitiesWithConfidences(self, article):
+    #     #article is a list of words
+    #     joined_article = ' '.join(article)
+    #     pred, conf_scores, conf_cnts = predict.predictWithConfidences(trained_model, joined_article, False, helper.cities)
+    #
+    #     for i in range(len(conf_scores)):
+    #         if conf_cnts[i] > 0:
+    #             conf_scores[i] /= conf_cnts[i]
+    #
+    #     return pred.split(' ### '), conf_scores
 
     #find the article similarity between original and newArticle[i] (=allArticles[i+1])
     def articleSim(self, indx, listNum, i):
@@ -204,6 +209,8 @@ class Environment:
             entities, confidences = self.prevEntities, self.prevConfidences
 
             # all other tags
+            ####################################
+            # todo: only one relation not one entity
             for i in range(NUM_ENTITIES):
                 if action != ACCEPT_ALL and i != action: continue #only perform update for the entity chosen by agent
 
@@ -229,14 +236,18 @@ class Environment:
                             # print "New entities", self.bestEntities
             if DEBUG:
                 print "entitySet:", self.bestEntitySet
+            ########
 
         if nextArticle and action != STOP_ACTION:
             assert(articleIndx != None)
-            if (articleIndx+1) in ENTITIES[self.indx][listNum]:
-                entities, confidences = ENTITIES[self.indx][listNum][articleIndx+1], CONFIDENCES[self.indx][listNum][articleIndx+1]
-            else:
-                entities, confidences = self.extractEntitiesWithConfidences(nextArticle)
-                ENTITIES[self.indx][listNum][articleIndx+1], CONFIDENCES[self.indx][listNum][articleIndx+1] = entities, confidences
+            ##########
+            # if (articleIndx+1) in ENTITIES[self.indx][listNum]:
+            # entities, confidences = ENTITIES[self.indx][listNum][articleIndx+1], CONFIDENCES[self.indx][listNum][articleIndx+1]
+            entities, confidences = ENTITIES[self.indx][listNum][articleIndx], CONFIDENCES[self.indx][listNum][articleIndx]
+            # else:
+            #     entities, confidences = self.extractEntitiesWithConfidences(nextArticle)
+            #     ENTITIES[self.indx][listNum][articleIndx+1], CONFIDENCES[self.indx][listNum][articleIndx+1] = entities, confidences
+            ##########
             assert(len(entities) == len(confidences))
         else:
             # print "No next article"
@@ -245,12 +256,16 @@ class Environment:
 
         #modify self.state appropriately
         # print(self.bestEntities, entities)
+        #############
         if constants.mode == 'Shooter':
-            matches = map(self.checkEquality, self.bestEntities.values()[1:-1], entities[1:-1])
+            matches = map(self.checkEquality, self.bestEntities.values()[1:-1], entities[1:-1]) # map() is a high order function, the first parameter is a pointer of a function
             matches.insert(0, self.checkEqualityShooter(self.bestEntities.values()[0], entities[0]))
             matches.append(self.checkEqualityCity(self.bestEntities.values()[-1], entities[-1]))
+        elif constants.mode == "DS":
+            matches = map(self.checkEquality, self.bestEntities.values(), entities)
         else:
             matches = map(self.checkEqualityShooter, self.bestEntities.values(), entities)
+        #######
 
         # pdb.set_trace()
         self.state = [0 for i in range(STATE_SIZE)]
@@ -281,12 +296,16 @@ class Environment:
 
         #add in context information
         if nextArticle and CONTEXT_TYPE != 0:
-            j = 4*NUM_ENTITIES+1     
-            for q in range(NUM_ENTITIES):
-                if self.entity == NUM_ENTITIES or self.entity == q:
-                    self.state[j:j+2*CONTEXT_LENGTH] = CONTEXT[self.indx][listNum][articleIndx+1][q]
-                j += 2*CONTEXT_LENGTH
-
+            #######################################
+            j = 4*NUM_ENTITIES+1
+            self.state[j:j + 2 * CONTEXT_LENGTH] = CONTEXT[self.indx][listNum][articleIndx][0]
+            j += 2 * CONTEXT_LENGTH
+            self.state[j:j + 2 * CONTEXT_LENGTH] = CONTEXT[self.indx][listNum][articleIndx][1]
+            # for q in range(NUM_ENTITIES):
+            #     if self.entity == NUM_ENTITIES or self.entity == q:
+            #         self.state[j:j+2*CONTEXT_LENGTH] = CONTEXT[self.indx][listNum][articleIndx+1][q]
+            #     j += 2*CONTEXT_LENGTH
+            ########################################
         # pdb.set_trace()
 
         #update state variables
@@ -343,6 +362,10 @@ class Environment:
             # add in city reward
             rewards.append(self.checkEqualityCity(newEntities[-1], self.goldEntities[-1]) \
                     - self.checkEqualityCity(oldEntities[-1], self.goldEntities[-1]))
+        ##########################################
+        elif constants.mode == 'DS':
+            rewards = [int(self.checkEquality(newEntities[0], self.goldEntities[0])) - int(self.checkEquality(oldEntities[0], self.goldEntities[0]))]
+        ##########################################
         else:
             rewards = []
             for i in range(len(newEntities)):
@@ -384,7 +407,29 @@ class Environment:
                     rewards.append(0.)
 
         return rewards
-        
+
+    def myCalculateStatSign(self, oldEntities, newEntities):
+
+        rewards = [int(self.checkEquality(newEntities[0], self.goldEntities[0])) - int(self.checkEquality(oldEntities[0], self.goldEntities[0]))]
+        return rewards
+
+    def myevaluate(self, predEntities, goldEntities, evalOutFile):
+        # shooterName first: only add this if gold contains a valid shooter
+        if goldEntities[0] != '':
+            gold = goldEntities[0].lower()
+            pred = predEntities[0].lower()
+            if gold == pred:
+                correct = 1
+            else:
+                correct = 0
+            CORRECT[int2tags[0]] += correct
+            GOLD[int2tags[0]] += 1
+            PRED[int2tags[0]] += 1
+        if evalOutFile:
+            evalOutFile.write("--------------------\n")
+            evalOutFile.write("Gold: "+str(gold)+"\n")
+            evalOutFile.write("Pred: "+str(pred)+"\n")
+            evalOutFile.write("Correct: "+str(correct)+"\n")
 
 
     #evaluate the bestEntities retrieved so far for a single article
@@ -881,7 +926,16 @@ def main(args):
     trained_model = pickle.load( open(args.modelFile, "rb" ) )
 
     #load cached entities (speed up)
-    train_articles, train_titles, train_identifiers, train_downloaded_articles, TRAIN_ENTITIES, TRAIN_CONFIDENCES, TRAIN_COSINE_SIM, CONTEXT1, CONTEXT2 = pickle.load(open(args.trainEntities, "rb"))
+    ####################################
+    # train_articles, train_titles, train_identifiers, train_downloaded_articles, TRAIN_ENTITIES, TRAIN_CONFIDENCES, TRAIN_COSINE_SIM, CONTEXT1, CONTEXT2 = pickle.load(open(args.trainEntities, "rb"))
+    train_articles, train_downloaded_articles, train_identifiers, train_entities, train_confidences, train_cosine_sim, train_contexts1, train_contexts2, train_vec1, train_vec2 = pickle.load(open(args.trainEntities, "rb"))
+    TRAIN_ENTITIES = train_entities
+    TRAIN_CONFIDENCES = train_confidences
+    TRAIN_COSINE_SIM = train_cosine_sim
+    CONTEXT1 = train_contexts1
+    CONTEXT2 = train_contexts2
+    train_titles = train_articles
+    ####
 
     if args.contextType == 1:
         TRAIN_CONTEXT = CONTEXT1
@@ -890,8 +944,16 @@ def main(args):
 
     CONTEXT_TYPE = args.contextType
 
-    
-    test_articles, test_titles, test_identifiers, test_downloaded_articles, TEST_ENTITIES, TEST_CONFIDENCES, TEST_COSINE_SIM, CONTEXT1, CONTEXT2 = pickle.load(open(args.testEntities, "rb"))
+    ########################################
+    # test_articles, test_titles, test_identifiers, test_downloaded_articles, TEST_ENTITIES, TEST_CONFIDENCES, TEST_COSINE_SIM, CONTEXT1, CONTEXT2 = pickle.load(open(args.testEntities, "rb"))
+    test_articles, test_downloaded_articles, test_identifiers, test_entities, test_confidences, test_cosine_sim, test_contexts1, test_contexts2, test_vec1, test_vec2 = pickle.load(open(args.trainEntities, "rb"))
+    TEST_ENTITIES = train_entities
+    TEST_CONFIDENCES = train_confidences
+    TEST_COSINE_SIM = train_cosine_sim
+    CONTEXT1 = test_contexts1
+    CONTEXT2 = test_contexts2
+    test_titles = test_articles
+    ####
 
     if args.contextType == 1:
         TEST_CONTEXT = CONTEXT1
@@ -1005,7 +1067,10 @@ def main(args):
             indx = articleNum % len(articles)
             if DEBUG: print "INDX:", indx
             articleNum += 1
-            originalArticle = articles[indx][0] #since article has words and tags
+            #########################
+            ##  originalArticle = articles[indx][0] #since article has words and tags
+            originalArticle = articles[indx].split(' ')
+            ####
             #IMP: make sure downloaded_articles is of form <indx, listNum>
             newArticles = [[q.split(' ')[:WORD_LIMIT] for q in sublist] for sublist in downloaded_articles[indx]]
             goldEntities = identifiers[indx]
@@ -1036,12 +1101,21 @@ def main(args):
         elif message == "evalEnd":
             print "------------\nEvaluation Stats: (Precision, Recall, F1):"
             outFile.write("------------\nEvaluation Stats: (Precision, Recall, F1):\n")
-            for tag in int2tags:
-                prec = CORRECT[tag]/PRED[tag]
-                rec = CORRECT[tag]/GOLD[tag]
-                f1 = (2*prec*rec)/(prec+rec)
-                print tag, prec, rec, f1, "########", CORRECT[tag], PRED[tag], GOLD[tag]
-                outFile.write(' '.join([str(tag), str(prec), str(rec), str(f1)])+'\n')
+            ######################################
+            # for tag in int2tags:
+            #     prec = CORRECT[tag]/PRED[tag]
+            #     rec = CORRECT[tag]/GOLD[tag]
+            #     f1 = (2*prec*rec)/(prec+rec)
+            #     print tag, prec, rec, f1, "########", CORRECT[tag], PRED[tag], GOLD[tag]
+            #     outFile.write(' '.join([str(tag), str(prec), str(rec), str(f1)])+'\n')
+            #########################
+            tag = int2tags[0]
+            prec = CORRECT[tag]/PRED[tag]
+            rec = CORRECT[tag]/GOLD[tag]
+            f1 = (2*prec*rec)/(prec+rec)
+            print tag, prec, rec, f1, "########", CORRECT[tag], PRED[tag], GOLD[tag]
+            outFile.write(' '.join([str(tag), str(prec), str(rec), str(f1)])+'\n')
+            #########
             print "StepCnt (total, average):", stepCnt, float(stepCnt)/len(articles)
             outFile.write("StepCnt (total, average): " + str(stepCnt)+ ' ' + str(float(stepCnt)/len(articles)) + '\n')
             
@@ -1113,12 +1187,17 @@ def main(args):
                 if args.oracle:                    
                     env.oracleEvaluate(env.goldEntities, ENTITIES[env.indx], CONFIDENCES[env.indx])
                 else:
-                    env.evaluateArticle(env.bestEntities.values(), env.goldEntities, args.shooterLenientEval, args.shooterLastName, evalOutFile)
+                    #################################
+                    # env.evaluateArticle(env.bestEntities.values(), env.goldEntities, args.shooterLenientEval, args.shooterLastName, evalOutFile)
+                    env.myevaluate(env.bestEntities.values(), env.goldEntities, evalOutFile)
+                    ################################
 
                 stepCnt += sum(env.stepNum)
 
                 #stat sign
-                vals = env.calculateStatSign(env.originalEntities, env.bestEntities.values())
+                ################################################
+                vals = env.myCalculateStatSign(env.originalEntities, env.bestEntities.values())
+                ############################################
                 for i, val in enumerate(vals):
                     if val > 0:
                         STAT_POSITIVE[i] += val
