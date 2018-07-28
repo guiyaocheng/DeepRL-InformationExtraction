@@ -204,8 +204,8 @@ def extract_context(downloaded_articles, entities, vectorizer, context=3):
     return contexts
 
 
-raw_data = load_data_file('/home/gyc/Data/held_out_dir/test.sent.txt')
-raw_conf = load_confidence('/home/gyc/Data/held_out_dir/test.scores.txt')
+raw_data = load_data_file('/home/gyc/Data/held_out_dir/train.sent.txt')
+raw_conf = load_confidence('/home/gyc/Data/held_out_dir/train.scores.txt')
 entity_map = load_entity_name('/home/gyc/Data/held_out_dir/filtered-freebase-simple-topic-dump-3cols.tsv')
 
 combined_raw = combine(raw_data,raw_conf)
@@ -221,7 +221,7 @@ vec1,vec2 = getContextDictionary(sents)
 contexts1 = extract_context(downloaded_articles,entities,vec1,context=3)
 contexts2 = extract_context(downloaded_articles,entities,vec2,context=3)
 
-with open('/home/gyc/Data/held_out_dir/test.p', "wb") as f:
+with open('/home/gyc/Data/held_out_dir/train.p', "wb") as f:
     pickle.dump([first_articles,downloaded_articles,identifiers,entities,confidences,cosine_sim,contexts1,contexts2,vec1,vec2],f)
 
 # sentence = u'But he doubted that modified calendars produce any overall academic benefits , a view shared by Gene V. Glass , a professor of education policy at Arizona State University , who said that at least a half-dozen studies suggest that \'\' there is not a scrap of evidence that shows a year-round calendar improves achievement . \'\''

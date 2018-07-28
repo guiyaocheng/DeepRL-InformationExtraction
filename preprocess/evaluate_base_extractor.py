@@ -43,6 +43,17 @@ def load_confidence(conf_file):
             raw_conf.append(((prediction,conf), len(raw_conf)))
     return raw_conf
 
+def combine(raw_data, raw_conf):
+    return [(sid,tid,rlabels,sent,rpred,conf,id1) for ((sid,tid,rlabels,sent), id1), ((rpred,conf), id2) in zip(raw_data,raw_conf)]
+
+def group(combined_raw):
+    grouped_data = dict()
+    for sid,tid,rlabels,sent,rpred,conf,id in combined_raw:
+        if (sid,tid) not in grouped_data:
+            grouped_data[(sid,tid)] = [(rlabels,sent,rpred,conf,id)]
+        else:
+            grouped_data[(sid,tid)].append((rlabels,sent,rpred,conf,id))
+    return grouped_data
 
 raw_data = load_data_file('/home/gyc/Data/held_out_dir/test.sent.txt')
 raw_conf = load_confidence('/home/gyc/Data/held_out_dir/test.scores.txt')
@@ -76,3 +87,40 @@ for y,p in y_pred_sorted:
     f1score = 2*precision*recall/(precision+recall)
     print 'precision, recall, f1 :: ', precision,recall,f1score
 
+
+combined_raw = combine(raw_data,raw_conf)
+grouped_data = group(combined_raw)
+
+y_true_dict = dict()
+for (sid, tid, rlabels, sent), id1 in raw_data:
+    if (sid,tid) not in y_true_dict:
+        y_true_dict[(sid,tid)] = set(rlabels)
+    else:
+        for r in rlabels:
+            y_true_dict[(sid,tid)].add(r)
+
+y_true_num = [len(rs) for (sid,tid),rs in y_true_dict.items()]
+num_relations = sum(y_true_num)
+print num_relations
+
+y_pred_dict = dict()
+for (sid,tid),menList in grouped_data.items():
+    for rlabels,sent,rpred,conf,id in menList:
+        if rpred!='NA':
+            if (sid,tid) not in y_pred_dict:
+                y_pred_dict[(sid,tid)] = set([rpred])
+            else:
+                y_pred_dict[(sid, tid)].add(rpred)
+y_pred_num = [len(rs) for (sid,tid),rs in y_pred_dict.items()]
+num_predictions = sum(y_pred_num)
+print num_predictions
+
+num_correct = 0.0
+for (sid,tid),rpreds in y_pred_dict.items():
+    if (sid,tid) in y_true_dict:
+        rtrues = y_true_dict[(sid,tid)]
+        rinters = rpreds.intersection(rtrues)
+        num_correct += len(rinters)
+print num_correct
+
+print 'precision, recall', num_correct/num_predictions, num_correct/num_relations

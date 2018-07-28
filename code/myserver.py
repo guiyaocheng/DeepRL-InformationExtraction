@@ -414,22 +414,19 @@ class Environment:
         return rewards
 
     def myevaluate(self, predEntities, goldEntities, evalOutFile):
-        # shooterName first: only add this if gold contains a valid shooter
-        if goldEntities[0] != '':
-            gold = goldEntities[0].lower()
-            pred = predEntities[0].lower()
+
+        gold = goldEntities[0]
+        pred = predEntities[0]
+        GOLD[int2tags[0]] += 1
+        if pred != 'NA':
             if gold == pred:
-                correct = 1
-            else:
-                correct = 0
-            CORRECT[int2tags[0]] += correct
-            GOLD[int2tags[0]] += 1
+                CORRECT[int2tags[0]] += 1
             PRED[int2tags[0]] += 1
         if evalOutFile:
             evalOutFile.write("--------------------\n")
             evalOutFile.write("Gold: "+str(gold)+"\n")
             evalOutFile.write("Pred: "+str(pred)+"\n")
-            evalOutFile.write("Correct: "+str(correct)+"\n")
+            # evalOutFile.write("Correct: "+str(correct)+"\n")
 
 
     #evaluate the bestEntities retrieved so far for a single article
@@ -946,10 +943,10 @@ def main(args):
 
     ########################################
     # test_articles, test_titles, test_identifiers, test_downloaded_articles, TEST_ENTITIES, TEST_CONFIDENCES, TEST_COSINE_SIM, CONTEXT1, CONTEXT2 = pickle.load(open(args.testEntities, "rb"))
-    test_articles, test_downloaded_articles, test_identifiers, test_entities, test_confidences, test_cosine_sim, test_contexts1, test_contexts2, test_vec1, test_vec2 = pickle.load(open(args.trainEntities, "rb"))
-    TEST_ENTITIES = train_entities
-    TEST_CONFIDENCES = train_confidences
-    TEST_COSINE_SIM = train_cosine_sim
+    test_articles, test_downloaded_articles, test_identifiers, test_entities, test_confidences, test_cosine_sim, test_contexts1, test_contexts2, test_vec1, test_vec2 = pickle.load(open(args.testEntities, "rb"))
+    TEST_ENTITIES = test_entities
+    TEST_CONFIDENCES = test_confidences
+    TEST_COSINE_SIM = test_cosine_sim
     CONTEXT1 = test_contexts1
     CONTEXT2 = test_contexts2
     test_titles = test_articles
