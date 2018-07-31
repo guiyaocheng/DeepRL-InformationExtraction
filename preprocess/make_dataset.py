@@ -203,9 +203,42 @@ def extract_context(downloaded_articles, entities, vectorizer, context=3):
 
     return contexts
 
+def fillblank(size):
+    s = ''
+    for i in range(size):
+        s += ' '
+    return s
 
-raw_data = load_data_file('/home/gyc/Data/held_out_dir/train.sent.txt')
-raw_conf = load_confidence('/home/gyc/Data/held_out_dir/train.scores.txt')
+def write_group(grouped_data,entity_map,filename):
+    with codecs.open(filename, 'w', 'UTF-8') as f:
+        for (sid,tid), raws in grouped_data.items():
+            sn = entity_map[sid]
+            tn = entity_map[tid]
+            s1st = sid+'\t'+tid+'\t'+sn+'\t'+tn+'\t'
+            stmp = fillblank(len(sid)) + '\t'
+            stmp += fillblank(len(tid)) + '\t'
+            stmp += fillblank(len(sn)) + '\t'
+            stmp += fillblank(len(tn)) + '\t'
+            for i in range(len(raws)):
+                if i==0:
+                    s = s1st
+                else:
+                    s = stmp
+                rlabels, sent, rpred, conf, id = raws[i]
+                slabel = ''
+                for r in rlabels:
+                    slabel += r + ';'
+                s += slabel + '\t'
+                s += rpred + '\t'
+                s += str(conf) + '\t'
+                s += str(id) + '\t'
+                s += sent + '\n'
+                f.write(s)
+
+mode = 'test'
+
+raw_data = load_data_file('/home/gyc/Data/held_out_dir/{}.sent.txt'.format(mode))
+raw_conf = load_confidence('/home/gyc/Data/held_out_dir/{}.scores.txt'.format(mode))
 entity_map = load_entity_name('/home/gyc/Data/held_out_dir/filtered-freebase-simple-topic-dump-3cols.tsv')
 
 combined_raw = combine(raw_data,raw_conf)
@@ -221,8 +254,10 @@ vec1,vec2 = getContextDictionary(sents)
 contexts1 = extract_context(downloaded_articles,entities,vec1,context=3)
 contexts2 = extract_context(downloaded_articles,entities,vec2,context=3)
 
-with open('/home/gyc/Data/held_out_dir/train.p', "wb") as f:
+with open('/home/gyc/Data/held_out_dir/{}.p'.format(mode), "wb") as f:
     pickle.dump([first_articles,downloaded_articles,identifiers,entities,confidences,cosine_sim,contexts1,contexts2,vec1,vec2],f)
 
-# sentence = u'But he doubted that modified calendars produce any overall academic benefits , a view shared by Gene V. Glass , a professor of education policy at Arizona State University , who said that at least a half-dozen studies suggest that \'\' there is not a scrap of evidence that shows a year-round calendar improves achievement . \'\''
-# vec = extract_entity_context(sentence,u'Gene V. Glass',vec2)
+sentence = u'But he doubted that modified calendars produce any overall academic benefits , a view shared by Gene V. Glass , a professor of education policy at Arizona State University , who said that at least a half-dozen studies suggest that \'\' there is not a scrap of evidence that shows a year-round calendar improves achievement . \'\''
+vec = extract_entity_context(sentence,u'Gene V. Glass',vec2)
+
+write_group(grouped_data,entity_map,'/home/gyc/Data/held_out_dir/{}.grouped.txt'.format(mode))

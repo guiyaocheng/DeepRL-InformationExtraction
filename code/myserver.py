@@ -925,7 +925,8 @@ def main(args):
     #load cached entities (speed up)
     ####################################
     # train_articles, train_titles, train_identifiers, train_downloaded_articles, TRAIN_ENTITIES, TRAIN_CONFIDENCES, TRAIN_COSINE_SIM, CONTEXT1, CONTEXT2 = pickle.load(open(args.trainEntities, "rb"))
-    train_articles, train_downloaded_articles, train_identifiers, train_entities, train_confidences, train_cosine_sim, train_contexts1, train_contexts2, train_vec1, train_vec2 = pickle.load(open(args.trainEntities, "rb"))
+    train_articles, train_downloaded_articles, train_identifiers, train_entities, train_confidences, train_cosine_sim, \
+    train_contexts1, train_contexts2, train_vec1, train_vec2 = pickle.load(open(args.trainEntities, "rb"))
     TRAIN_ENTITIES = train_entities
     TRAIN_CONFIDENCES = train_confidences
     TRAIN_COSINE_SIM = train_cosine_sim
@@ -943,7 +944,8 @@ def main(args):
 
     ########################################
     # test_articles, test_titles, test_identifiers, test_downloaded_articles, TEST_ENTITIES, TEST_CONFIDENCES, TEST_COSINE_SIM, CONTEXT1, CONTEXT2 = pickle.load(open(args.testEntities, "rb"))
-    test_articles, test_downloaded_articles, test_identifiers, test_entities, test_confidences, test_cosine_sim, test_contexts1, test_contexts2, test_vec1, test_vec2 = pickle.load(open(args.testEntities, "rb"))
+    test_articles, test_downloaded_articles, test_identifiers, test_entities, test_confidences, test_cosine_sim, \
+    test_contexts1, test_contexts2, test_vec1, test_vec2 = pickle.load(open(args.testEntities, "rb"))
     TEST_ENTITIES = test_entities
     TEST_CONFIDENCES = test_confidences
     TEST_COSINE_SIM = test_cosine_sim

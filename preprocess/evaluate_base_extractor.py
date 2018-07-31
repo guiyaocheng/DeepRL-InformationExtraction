@@ -22,12 +22,13 @@ def parse_line(line):
     '''You should write specific paring code here'''
 
     fields = line.split('\t')
-    sourceID = fields[0]
-    targetID = fields[1]
-    rels = fields[2].split(',')
-    sent = fields[3]
+    pID = fields[0]
+    sourceID = fields[1]
+    targetID = fields[2]
+    rels = fields[3].split(',')
+    sent = fields[4]
 
-    return sourceID,targetID,rels,sent
+    return pID,sourceID,targetID,rels,sent
 
 def load_confidence(conf_file):
     raw_conf = []
@@ -44,21 +45,21 @@ def load_confidence(conf_file):
     return raw_conf
 
 def combine(raw_data, raw_conf):
-    return [(sid,tid,rlabels,sent,rpred,conf,id1) for ((sid,tid,rlabels,sent), id1), ((rpred,conf), id2) in zip(raw_data,raw_conf)]
+    return [(pid,sid,tid,rlabels,sent,rpred,conf,id1) for ((pid,sid,tid,rlabels,sent), id1), ((rpred,conf), id2) in zip(raw_data,raw_conf)]
 
 def group(combined_raw):
     grouped_data = dict()
-    for sid,tid,rlabels,sent,rpred,conf,id in combined_raw:
-        if (sid,tid) not in grouped_data:
-            grouped_data[(sid,tid)] = [(rlabels,sent,rpred,conf,id)]
+    for pid,sid,tid,rlabels,sent,rpred,conf,id in combined_raw:
+        if (pid,sid,tid) not in grouped_data:
+            grouped_data[(pid,sid,tid)] = [(rlabels,sent,rpred,conf,id)]
         else:
-            grouped_data[(sid,tid)].append((rlabels,sent,rpred,conf,id))
+            grouped_data[(pid,sid,tid)].append((rlabels,sent,rpred,conf,id))
     return grouped_data
 
-raw_data = load_data_file('/home/gyc/Data/held_out_dir/test.sent.txt')
-raw_conf = load_confidence('/home/gyc/Data/held_out_dir/test.scores.txt')
+raw_data = load_data_file('/home/gyc/Data/held_out_tester/test.sent.txt')
+raw_conf = load_confidence('/home/gyc/Data/held_out_tester/test.scores.txt')
 
-y_true = [rlabels[0] for (sid,tid,rlabels,sent), id1 in raw_data]
+y_true = [rlabels[0] for (pid,sid,tid,rlabels,sent), id1 in raw_data]
 y_pred = [rpred for (rpred,conf), id2 in raw_conf]
 
 # multi-class and multi-label evaluation
@@ -69,8 +70,8 @@ print f1_score(y_true, y_pred, average='weighted')
 print confusion_matrix(y_true, y_pred)
 
 
-y_true_set = set([(sid,tid,rlabels[0]) for (sid,tid,rlabels,sent), id1 in raw_data])
-y_pred_conf = [((sid,tid,rpred),conf) for ((sid,tid,rlabels,sent), id1), ((rpred,conf), id2) in zip(raw_data,raw_conf)]
+y_true_set = set([(sid,tid,rlabels[0]) for (pid,sid,tid,rlabels,sent), id1 in raw_data])
+y_pred_conf = [((sid,tid,rpred),conf) for ((pid,sid,tid,rlabels,sent), id1), ((rpred,conf), id2) in zip(raw_data,raw_conf)]
 y_pred_sorted = sorted(y_pred_conf, key=lambda d:d[1], reverse=True)
 
 
@@ -92,33 +93,33 @@ combined_raw = combine(raw_data,raw_conf)
 grouped_data = group(combined_raw)
 
 y_true_dict = dict()
-for (sid, tid, rlabels, sent), id1 in raw_data:
-    if (sid,tid) not in y_true_dict:
-        y_true_dict[(sid,tid)] = set(rlabels)
+for (pid,sid, tid, rlabels, sent), id1 in raw_data:
+    if (pid,sid,tid) not in y_true_dict:
+        y_true_dict[(pid,sid,tid)] = set(rlabels)
     else:
         for r in rlabels:
-            y_true_dict[(sid,tid)].add(r)
+            y_true_dict[(pid,sid,tid)].add(r)
 
-y_true_num = [len(rs) for (sid,tid),rs in y_true_dict.items()]
+y_true_num = [len(rs) for (pid,sid,tid),rs in y_true_dict.items()]
 num_relations = sum(y_true_num)
 print num_relations
 
 y_pred_dict = dict()
-for (sid,tid),menList in grouped_data.items():
+for (pid,sid,tid),menList in grouped_data.items():
     for rlabels,sent,rpred,conf,id in menList:
         if rpred!='NA':
-            if (sid,tid) not in y_pred_dict:
-                y_pred_dict[(sid,tid)] = set([rpred])
+            if (pid,sid,tid) not in y_pred_dict:
+                y_pred_dict[(pid,sid,tid)] = set([rpred])
             else:
-                y_pred_dict[(sid, tid)].add(rpred)
-y_pred_num = [len(rs) for (sid,tid),rs in y_pred_dict.items()]
+                y_pred_dict[(pid,sid, tid)].add(rpred)
+y_pred_num = [len(rs) for (pid,sid,tid),rs in y_pred_dict.items()]
 num_predictions = sum(y_pred_num)
 print num_predictions
 
 num_correct = 0.0
-for (sid,tid),rpreds in y_pred_dict.items():
-    if (sid,tid) in y_true_dict:
-        rtrues = y_true_dict[(sid,tid)]
+for (pid,sid,tid),rpreds in y_pred_dict.items():
+    if (pid,sid,tid) in y_true_dict:
+        rtrues = y_true_dict[(pid,sid,tid)]
         rinters = rpreds.intersection(rtrues)
         num_correct += len(rinters)
 print num_correct
