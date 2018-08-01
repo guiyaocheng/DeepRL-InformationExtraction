@@ -36,7 +36,7 @@ cmd:option('-verbose', 2,
            'the higher the level, the more information is printed to screen')
 cmd:option('-threads', 1, 'number of BLAS threads')
 cmd:option('-gpu', -1, 'gpu flag')
-
+cmd:option('-zmq_ip', '127.0.0.1', 'ZMQ IP')
 cmd:option('-zmq_port', 5050, 'ZMQ port')
 cmd:option('-mode', 'Shooter', 'Experiment domain')
 cmd:option('-exp_folder', 'logs/', 'folder for logs')
@@ -168,8 +168,12 @@ while step < opt.steps do
         test_avg_R:add{['Average Reward'] = total_reward}
         test_avg_Q:add{['Average Q'] = agent.v_avg}
      
-        test_avg_R:style{['Average Reward'] = '-'}; test_avg_R:plot()        
-        test_avg_Q:style{['Average Q'] = '-'}; test_avg_Q:plot()
+        test_avg_R:style{['Average Reward'] = '-'}       
+        test_avg_Q:style{['Average Q'] = '-'}
+        if step >= opt.steps then
+          test_avg_R:plot() 
+          test_avg_Q:plot()
+        end
 
         reward_history[ind] = total_reward
         reward_counts[ind] = nrewards

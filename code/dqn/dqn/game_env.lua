@@ -16,7 +16,8 @@ function env:__init(args)
     self.ctx = zmq.context()
     self.skt = self.ctx:socket{zmq.REQ,
         linger = 0, rcvtimeo = 10000;
-        connect = "tcp://127.0.0.1:" .. args.zmq_port;
+        --connect = "tcp://127.0.0.1:" .. args.zmq_port;
+        connect = "tcp://" .. args.zmq_ip .. ":" .. args.zmq_port;
     }
 
     if args.mode == 'Shooter' then
@@ -26,6 +27,8 @@ function env:__init(args)
         -- Action 999 - take all entities
     elseif args.mode == 'DS' then
         self.actions = {0,1,2,3,4,999} -- Distant Supervision
+    elseif args.mode == 'DS02' then
+        self.actions = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 999} -- Distant Supervision model
     else
         self.actions = {0,1,2,3,4,999}  --EMA
     end

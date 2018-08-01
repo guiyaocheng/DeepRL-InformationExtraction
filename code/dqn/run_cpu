@@ -34,7 +34,7 @@ agent_type="DQN3_0_1"
 agent_name="agent_"$1
 ncols=1
 target_q=${6:-5000}
-mode='DS'
+mode='DS02'
 if [ "$mode" == "Shooter" ]
 then
     state_dim=41;
@@ -42,6 +42,10 @@ then
 else if [ "$mode" == "DS" ]
 then
     state_dim=31;
+    n_queries=1;
+else if [ "$mode" == "DS02"]
+then
+    state_dim=520;
     n_queries=1;
 else
     state_dim=31;
