@@ -9,20 +9,21 @@ def load_constants():
     global male_first_names,female_first_names,last_names,cities,other_features,\
         number_as_words,word_ordinals, other_feature_names
 
-    cities = pickle.load(open('../data/constants/cities.p','rb'))
+    dir = '../data/constants'
+    cities = pickle.load(open('{}/cities.p'.format(dir),'rb'))
 
     if MODE == 'Shooter':
-        with open('../data/constants/male_first_names.json','rb') as outfile:
+        with open('{}/male_first_names.json'.format(dir),'rb') as outfile:
             male_first_names = set(json.load(outfile))
-        with open('../data/constants/female_first_names.json','rb') as outfile:
+        with open('{}/female_first_names.json'.format(dir),'rb') as outfile:
             female_first_names = set(json.load(outfile))
-        with open('../data/constants/last_names.json','rb') as outfile:
+        with open('{}/last_names.json'.format(dir),'rb') as outfile:
             last_names = set(json.load(outfile))
-        with open('../data/constants/train_names.json','rb') as outfile:
+        with open('{}/train_names.json'.format(dir),'rb') as outfile:
             train_names = set(json.load(outfile))
-        with open('../data/constants/number_as_words.json','rb') as outfile:
+        with open('{}/number_as_words.json'.format(dir),'rb') as outfile:
             number_as_words = set(json.load(outfile))
-        with open('../data/constants/word_ordinals.json','rb') as outfile:
+        with open('{}/word_ordinals.json'.format(dir),'rb') as outfile:
             word_ordinals = set(json.load(outfile))
         other_features = [is_capital,is_digit,is_male_first_name,is_female_first_name,is_last_name,is_full_city,is_partial_city,contains_digit,is_short_word,is_long_word,is_number_word,is_ordinal_word,is_ordinal_num]
         other_feature_names = ['is_capital','is_digit','is_male_first_name','is_female_first_name','is_last_name','is_full_city','is_partial_city','contains_digit','is_short_word','is_long_word','is_number_word','is_ordinal_word','is_ordinal_num']
@@ -30,17 +31,17 @@ def load_constants():
     elif MODE == 'EMA':
         global adulterants, foods, adulterant_parts, country_names
 
-        with open('../data/constants/adulterant_part.p','rb') as outfile:
+        with open('{}/adulterant_part.p'.format(dir),'rb') as outfile:
             adulterant_parts = set(pickle.load(outfile))
-        with open('../data/constants/adulterants.p','rb') as outfile:
+        with open('{}/adulterants.p'.format(dir),'rb') as outfile:
             adulterants = set(pickle.load(outfile))
-        with open('../data/constants/foods.p','rb') as outfile:
+        with open('{}/foods.p'.format(dir),'rb') as outfile:
             foods = pickle.load(outfile)
-        with open('../data/constants/number_as_words.json','rb') as outfile:
+        with open('{}/number_as_words.json'.format(dir),'rb') as outfile:
             number_as_words = set(json.load(outfile))
-        with open('../data/constants/word_ordinals.json','rb') as outfile:
+        with open('{}/word_ordinals.json'.format(dir),'rb') as outfile:
             word_ordinals = set(json.load(outfile))
-        with open('../data/constants/country_names.p', 'rb') as outfile:
+        with open('{}/country_names.p'.format(dir), 'rb') as outfile:
             country_names = set(pickle.load(outfile))
         other_features = [is_capital,is_full_city,is_partial_city,is_short_word,is_long_word,is_number_word,is_ordinal_word,is_ordinal_num, \
         is_adulterant, is_food, is_country, is_adulterant_part, is_direction, is_region]

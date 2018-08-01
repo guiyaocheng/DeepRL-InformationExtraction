@@ -53,9 +53,9 @@ def load_confidence(conf_file):
             if len(rels) == 0:
                 rels = fields
             else:
-                confs = [(rel,float(conf)) for rel,conf in zip(rels,fields)]
+                confs = (rels,[float(f) for f in fields])
                 raw_conf.append(confs)
-    return raw_conf
+    return rels, raw_conf
 
 def load_entity_name(entity_name_file):
     entity_map = dict()
@@ -72,38 +72,49 @@ def load_entity_name(entity_name_file):
     return entity_map
 
 def combine(raw_data, raw_conf):
-    return [(pid,sid,tid,rlabels,sent,confs,id1) for (pid,sid,tid,rlabels,sent,id1), confs in zip(raw_data,raw_conf)]
+    return [(pid,sid,tid,rlabels,sent,predrs,confs,id1) for (pid,sid,tid,rlabels,sent,id1), (predrs,confs) in zip(raw_data,raw_conf)]
 
 
 def group(combined_raw):
     grouped_data = dict()
-    for pid,sid,tid,rlabels,sent,confs,id in combined_raw:
+    for pid,sid,tid,rlabels,sent,predrs,confs,id in combined_raw:
         if (pid,sid,tid) not in grouped_data:
-            grouped_data[(pid,sid,tid)] = [(rlabels,sent,confs,id)]
+            grouped_data[(pid,sid,tid)] = [(rlabels,sent,predrs,confs,id)]
         else:
-            grouped_data[(pid,sid,tid)].append((rlabels,sent,confs,id))
+            grouped_data[(pid,sid,tid)].append((rlabels,sent,predrs,confs,id))
     return grouped_data
 
-def make_data(grouped_data, entity_map):
+def make_data(grouped_data, entity_map, rels):
     articles = []
     identifiers = []
-    entities = []
+    preds = []
     confidences = []
+    entities = []
     for (pid,sid,tid), slist in grouped_data.items():
         articlelist = []
         conflist = []
+        predlist = []
         sname = entity_map[sid]
         tname = entity_map[tid]
         assert sname
         assert tname
-        for rlabels,sent,confs,id in slist:
+        for rlabels,sent,predrs,confs,id in slist:
             articlelist.append(sent)
+            predlist.append(predrs)
             conflist.append(confs)
         articles.append([articlelist])
         entities.append([(sname,tname)])
+        preds.append([predlist])
         confidences.append([conflist])
-        identifiers.append([rlabels[0]]) ## todo : not sure if it is fine to select the first label?
-    return articles,identifiers,entities,confidences
+        identifier = []
+        rlabelset = set(rlabels)
+        for i in range(len(rels)):
+            if rels[i] in rlabelset:
+                identifier.append(rels[i])
+            else:
+                identifier.append('NA')
+        identifiers.append([identifier])
+    return articles,identifiers,entities,preds,confidences
 
 
 def calculate_cosine_sim(first_articles,downloaded_articles,numLists=1):
@@ -201,14 +212,14 @@ dir = '/home/gyc/Data/held_out_02'
 mode = 'test'
 
 raw_data = load_data_file('{}/{}.sent.txt'.format(dir,mode))
-raw_conf = load_confidence('{}/{}.scores.txt'.format(dir,mode))
+rels, raw_conf = load_confidence('{}/{}.scores.txt'.format(dir,mode))
 entity_map = load_entity_name('/home/gyc/Data/held_out_dir/filtered-freebase-simple-topic-dump-3cols.tsv')
 sents = [sent for pid,sid,tid,rs,sent,rid in raw_data]
 
 combined_raw = combine(raw_data,raw_conf)
 grouped_data = group(combined_raw)
 
-articles,identifiers,entities,confidences = make_data(grouped_data, entity_map)
+articles,identifiers,entities,preds,confidences = make_data(grouped_data, entity_map, rels)
 
 
 vec1,vec2 = getContextDictionary(sents)
@@ -217,7 +228,7 @@ contexts1 = extract_context(articles,entities,vec1,context=3)
 contexts2 = extract_context(articles,entities,vec2,context=3)
 
 with open('{}/{}.p'.format(dir,mode), "wb") as f:
-    pickle.dump([articles,identifiers,entities,confidences,contexts1,contexts2,vec1,vec2],f)
+    pickle.dump([articles,identifiers,entities,preds,confidences,contexts1,contexts2,vec1,vec2],f)
 
 sentence = u'But he doubted that modified calendars produce any overall academic benefits , a view shared by Gene V. Glass , a professor of education policy at Arizona State University , who said that at least a half-dozen studies suggest that \'\' there is not a scrap of evidence that shows a year-round calendar improves achievement . \'\''
 vec = extract_entity_context(sentence,u'Gene V. Glass',vec2)

@@ -2,14 +2,15 @@ import zmq, time
 import numpy as np
 import copy
 import sys, json, pdb, pickle, operator, collections
-from sklearn.feature_extraction.text import TfidfVectorizer
 import inflect
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
 import argparse
 from random import shuffle
 from operator import itemgetter
 import matplotlib.pyplot as plt
 from nltk.tokenize import word_tokenize
-from classifier import Classifier
+#from classifier import Classifier
 import constants
 import re
 
@@ -21,7 +22,8 @@ COUNT_ZERO = False
 int2tags = constants.int2tags
 
 NUM_RELATIONS = len(int2tags)
-NUM_QUERY_TYPES = NUM_RELATIONS + 1
+# NUM_QUERY_TYPES = NUM_RELATIONS + 1
+NUM_QUERY_TYPES = 1
 WORD_LIMIT = 1000
 CONTEXT_LENGTH = 3
 CONTEXT_TYPE = None
@@ -94,6 +96,11 @@ class Environment:
 
         self.bestEntities = collections.defaultdict(lambda:'') #current best entities
         self.bestConfidences = collections.defaultdict(lambda:0.)
+
+        for i in range(NUM_RELATIONS):
+            self.bestEntities[i] = 'NA'
+            self.bestConfidences[i] = 0.02
+
         self.bestEntitySet = None
         if self.aggregate == 'majority':
             self.bestEntitySet = collections.defaultdict(lambda:[])
@@ -135,7 +142,8 @@ class Environment:
         #update the initial state
         self.stepNum = [0 for q in range(NUM_QUERY_TYPES)]
         
-        self.updateState(ACCEPT_ALL, 1, self.ignoreDuplicates) 
+        # self.updateState(ACCEPT_ALL, 1, self.ignoreDuplicates)
+        self.updateState(IGNORE_ALL, 1, self.ignoreDuplicates)
 
         return
 
@@ -249,6 +257,8 @@ class Environment:
             matches.append(self.checkEqualityCity(self.bestEntities.values()[-1], entities[-1]))
         elif constants.mode == "DS":
             matches = map(self.checkEquality, self.bestEntities.values(), entities)
+        elif constants.mode == 'DS02':
+            matches = map(self.checkEquality, self.bestEntities.values(), entities)
         else:
             matches = map(self.checkEqualityShooter, self.bestEntities.values(), entities)
         #######
@@ -265,12 +275,12 @@ class Environment:
                 self.state[3 * NUM_RELATIONS + i] = 1
 
             # self.state[2*NUM_ENTITIES+i] = float(matches[i])*confidences[i] if float(matches[i])>0 else -1*confidences[i]
-        if nextArticle:
-            # print self.indx, listNum, articleIndx
-            # print COSINE_SIM[self.indx][listNum]
-            self.state[4 * NUM_RELATIONS] = self.articleSim(self.indx, listNum, articleIndx)
-        else:
-            self.state[4 * NUM_RELATIONS] = 0
+        # if nextArticle:
+        #     # print self.indx, listNum, articleIndx
+        #     # print COSINE_SIM[self.indx][listNum]
+        #     self.state[4 * NUM_RELATIONS] = self.articleSim(self.indx, listNum, articleIndx)
+        # else:
+        #     self.state[4 * NUM_RELATIONS] = 0
 
         #selectively mask states
         if self.entity != NUM_RELATIONS:
@@ -351,6 +361,12 @@ class Environment:
         ##########################################
         elif constants.mode == 'DS':
             rewards = [int(self.checkEquality(newEntities[0], self.goldEntities[0])) - int(self.checkEquality(oldEntities[0], self.goldEntities[0]))]
+        elif constants.mode == 'DS02':
+            rewards = []
+            for i in range(NUM_RELATIONS):
+                newAcc = int(self.checkEquality(newEntities[i], self.goldEntities[i]))
+                oldAcc = int(self.checkEquality(oldEntities[i], self.goldEntities[i]))
+                rewards.append(newAcc-oldAcc)
         ##########################################
         else:
             rewards = []
@@ -413,6 +429,22 @@ class Environment:
             evalOutFile.write("Gold: "+str(gold)+"\n")
             evalOutFile.write("Pred: "+str(pred)+"\n")
             # evalOutFile.write("Correct: "+str(correct)+"\n")
+
+    def myevaluate02(self, predEntities, goldEntities, evalOutFile):
+
+        for i in range(NUM_RELATIONS):
+            gold = goldEntities[i]
+            pred = predEntities[i]
+            GOLD[int2tags[i]] += 1
+            if pred != 'NA':
+                if gold == pred:
+                    CORRECT[int2tags[i]] += 1
+                PRED[int2tags[i]] += 1
+            if evalOutFile:
+                evalOutFile.write("--------------------\n")
+                evalOutFile.write("Gold: "+str(gold)+"\n")
+                evalOutFile.write("Pred: "+str(pred)+"\n")
+                # evalOutFile.write("Correct: "+str(correct)+"\n")
 
 
     #evaluate the bestEntities retrieved so far for a single article
@@ -911,8 +943,8 @@ def main(args):
     #load cached entities (speed up)
     ####################################
     # train_articles, train_titles, train_identifiers, train_downloaded_articles, TRAIN_ENTITIES, TRAIN_CONFIDENCES, TRAIN_COSINE_SIM, CONTEXT1, CONTEXT2 = pickle.load(open(args.trainEntities, "rb"))
-    train_articles, train_identifiers, train_entities, train_confidences, train_contexts1, train_contexts2, train_vec1, train_vec2 = pickle.load(open(args.trainEntities, "rb"))
-    TRAIN_ENTITIES = train_entities
+    train_articles, train_identifiers, train_entities, train_preds, train_confidences, train_contexts1, train_contexts2, train_vec1, train_vec2 = pickle.load(open(args.trainEntities, "rb"))
+    TRAIN_ENTITIES = train_preds
     TRAIN_CONFIDENCES = train_confidences
     CONTEXT1 = train_contexts1
     CONTEXT2 = train_contexts2
@@ -927,8 +959,8 @@ def main(args):
 
     ########################################
     # test_articles, test_titles, test_identifiers, test_downloaded_articles, TEST_ENTITIES, TEST_CONFIDENCES, TEST_COSINE_SIM, CONTEXT1, CONTEXT2 = pickle.load(open(args.testEntities, "rb"))
-    test_articles, test_identifiers, test_entities, test_confidences, test_contexts1, test_contexts2, test_vec1, test_vec2 = pickle.load(open(args.testEntities, "rb"))
-    TEST_ENTITIES = test_entities
+    test_articles, test_identifiers, test_entities, test_preds, test_confidences, test_contexts1, test_contexts2, test_vec1, test_vec2 = pickle.load(open(args.testEntities, "rb"))
+    TEST_ENTITIES = test_preds
     TEST_CONFIDENCES = test_confidences
     CONTEXT1 = test_contexts1
     CONTEXT2 = test_contexts2
@@ -996,10 +1028,10 @@ def main(args):
             CLS_train_identifiers = train_identifiers
             CLS_test_identifiers   = test_identifiers
 
-        baseline = Classifier(CLS_TRAIN_ENTITIES, CLS_TRAIN_CONFIDENCES, CLS_TRAIN_COSINE_SIM, CLS_TRAIN_CONTEXT,\
-                 CLS_TEST_ENTITIES, CLS_TEST_CONFIDENCES, CLS_TEST_COSINE_SIM, CLS_TEST_CONTEXT)
-
-        baseline.trainAndEval(CLS_train_identifiers, CLS_test_identifiers, args.entity, COUNT_ZERO)
+        # baseline = Classifier(CLS_TRAIN_ENTITIES, CLS_TRAIN_CONFIDENCES, CLS_TRAIN_COSINE_SIM, CLS_TRAIN_CONTEXT,\
+        #          CLS_TEST_ENTITIES, CLS_TEST_CONFIDENCES, CLS_TEST_COSINE_SIM, CLS_TEST_CONTEXT)
+        #
+        # baseline.trainAndEval(CLS_train_identifiers, CLS_test_identifiers, args.entity, COUNT_ZERO)
         return
 
 
@@ -1043,12 +1075,13 @@ def main(args):
             articleNum += 1
             #IMP: make sure downloaded_articles is of form <indx, listNum>
             newArticles = [[q.split(' ')[:WORD_LIMIT] for q in sublist] for sublist in articles[indx]]
-            goldEntities = identifiers[indx]
+            goldEntities = identifiers[indx][0]
             env = Environment(newArticles, goldEntities, indx, args, evalMode)
             newstate, reward, terminal = env.state, 0, 'false'
 
         elif message == "evalStart":
             CORRECT = collections.defaultdict(lambda:0.)
+
             GOLD = collections.defaultdict(lambda:0.)
             PRED = collections.defaultdict(lambda:0.)
             QUERY = collections.defaultdict(lambda:0.)
@@ -1072,20 +1105,37 @@ def main(args):
             print "------------\nEvaluation Stats: (Precision, Recall, F1):"
             outFile.write("------------\nEvaluation Stats: (Precision, Recall, F1):\n")
             ######################################
-            # for tag in int2tags:
-            #     prec = CORRECT[tag]/PRED[tag]
-            #     rec = CORRECT[tag]/GOLD[tag]
-            #     f1 = (2*prec*rec)/(prec+rec)
-            #     print tag, prec, rec, f1, "########", CORRECT[tag], PRED[tag], GOLD[tag]
-            #     outFile.write(' '.join([str(tag), str(prec), str(rec), str(f1)])+'\n')
+            for tag in int2tags:
+                if CORRECT[tag] and PRED[tag] and GOLD[tag]:
+                    prec = CORRECT[tag]/PRED[tag]
+                    rec = CORRECT[tag]/GOLD[tag]
+                    f1 = (2*prec*rec)/(prec+rec)
+                    print tag, prec, rec, f1, "########", CORRECT[tag], PRED[tag], GOLD[tag]
+                    outFile.write(' '.join([str(tag), str(prec), str(rec), str(f1)])+'\n')
             #########################
-            tag = int2tags[0]
-            prec = CORRECT[tag]/PRED[tag]
-            rec = CORRECT[tag]/GOLD[tag]
-            f1 = (2*prec*rec)/(prec+rec)
-            print tag, prec, rec, f1, "########", CORRECT[tag], PRED[tag], GOLD[tag]
-            outFile.write(' '.join([str(tag), str(prec), str(rec), str(f1)])+'\n')
+            # tag = int2tags[0]
+            # prec = CORRECT[tag]/PRED[tag]
+            # rec = CORRECT[tag]/GOLD[tag]
+            # f1 = (2*prec*rec)/(prec+rec)
+            # print tag, prec, rec, f1, "########", CORRECT[tag], PRED[tag], GOLD[tag]
+            # outFile.write(' '.join([str(tag), str(prec), str(rec), str(f1)])+'\n')
             #########
+            ##########################
+
+            correct, pred, gold = 0.0,0.0,0.0
+            for tag, num in CORRECT.items():
+                correct += num
+            for tag,num in PRED.items():
+                pred += num
+            for tag, num in GOLD.items():
+                gold += num
+            prec = correct/pred
+            rec = correct/gold
+            f1 = (2 * prec * rec) / (prec + rec)
+            print "macro average", prec, rec, f1, "########", correct, pred, gold
+            outFile.write(' '.join([str(tag), str(prec), str(rec), str(f1)])+'\n')
+            ###########
+
             print "StepCnt (total, average):", stepCnt, float(stepCnt)/len(articles)
             outFile.write("StepCnt (total, average): " + str(stepCnt)+ ' ' + str(float(stepCnt)/len(articles)) + '\n')
             
@@ -1159,7 +1209,8 @@ def main(args):
                 else:
                     #################################
                     # env.evaluateArticle(env.bestEntities.values(), env.goldEntities, args.shooterLenientEval, args.shooterLastName, evalOutFile)
-                    env.myevaluate(env.bestEntities.values(), env.goldEntities, evalOutFile)
+                    # env.myevaluate(env.bestEntities.values(), env.goldEntities, evalOutFile)
+                    env.myevaluate02(env.bestEntities.values(), env.goldEntities, evalOutFile)
                     ################################
 
                 stepCnt += sum(env.stepNum)
