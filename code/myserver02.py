@@ -419,32 +419,35 @@ class Environment:
 
         gold = goldEntities[0]
         pred = predEntities[0]
-        GOLD[int2tags[0]] += 1
+        if gold != 'NA':
+            GOLD[gold] += 1
         if pred != 'NA':
             if gold == pred:
-                CORRECT[int2tags[0]] += 1
-            PRED[int2tags[0]] += 1
-        if evalOutFile:
-            evalOutFile.write("--------------------\n")
-            evalOutFile.write("Gold: "+str(gold)+"\n")
-            evalOutFile.write("Pred: "+str(pred)+"\n")
-            # evalOutFile.write("Correct: "+str(correct)+"\n")
+                CORRECT[pred] += 1
+            PRED[pred] += 1
+            if evalOutFile:
+                evalOutFile.write("--------------------\n")
+                evalOutFile.write("Gold: "+str(gold)+"\n")
+                evalOutFile.write("Pred: "+str(pred)+"\n")
+                # evalOutFile.write("Correct: "+str(correct)+"\n")
 
     def myevaluate02(self, predEntities, goldEntities, evalOutFile):
 
         for i in range(NUM_RELATIONS):
             gold = goldEntities[i]
             pred = predEntities[i]
-            GOLD[int2tags[i]] += 1
+            if gold != 'NA':
+                GOLD[gold] += 1
             if pred != 'NA':
                 if gold == pred:
-                    CORRECT[int2tags[i]] += 1
-                PRED[int2tags[i]] += 1
-            if evalOutFile:
-                evalOutFile.write("--------------------\n")
-                evalOutFile.write("Gold: "+str(gold)+"\n")
-                evalOutFile.write("Pred: "+str(pred)+"\n")
-                # evalOutFile.write("Correct: "+str(correct)+"\n")
+                    CORRECT[pred] += 1
+                PRED[pred] += 1
+                if evalOutFile:
+                    evalOutFile.write("--------------------\n")
+                    evalOutFile.write(str(i)+"\n")
+                    evalOutFile.write("Gold: "+str(gold)+"\n")
+                    evalOutFile.write("Pred: "+str(pred)+"\n")
+                    # evalOutFile.write("Correct: "+str(correct)+"\n")
 
 
     #evaluate the bestEntities retrieved so far for a single article
@@ -938,7 +941,7 @@ def main(args):
     
     print args
 
-    trained_model = pickle.load( open(args.modelFile, "rb" ) )
+    # trained_model = pickle.load( open(args.modelFile, "rb" ) )
 
     #load cached entities (speed up)
     ####################################
@@ -1099,6 +1102,9 @@ def main(args):
             CONTEXT = TEST_CONTEXT
             articles, identifiers = test_articles, test_identifiers
 
+            evalOutFile = None
+            if args.evalOutFile != '':
+                evalOutFile = open(args.evalOutFile, 'w')
             # print "##### Evaluation Started ######"
 
         elif message == "evalEnd":
@@ -1122,7 +1128,7 @@ def main(args):
             #########
             ##########################
 
-            correct, pred, gold = 0.0,0.0,0.0
+            correct, pred, gold = 1e-6,1e-6,1e-6
             for tag, num in CORRECT.items():
                 correct += num
             for tag,num in PRED.items():
